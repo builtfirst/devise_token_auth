@@ -12,16 +12,13 @@ module DeviseTokenAuth
 
     def create
       # Check
-      field = (resource_params.keys.map(&:to_sym) & resource_class.authentication_keys).first
-
       @resource = nil
-      if field
-        q_value = get_case_insensitive_field_from_resource_params(field)
 
-        @resource = find_resource(field, q_value)
+      if finder_keys.any?
+        @resource = find_resource_hsh(finder_hsh)
       end
 
-      if @resource && valid_params?(field, q_value) && (!@resource.respond_to?(:active_for_authentication?) || @resource.active_for_authentication?)
+      if @resource && valid_params?(finder_hsh) && (!@resource.respond_to?(:active_for_authentication?) || @resource.active_for_authentication?)
         valid_password = @resource.valid_password?(resource_params[:password])
         if (@resource.respond_to?(:valid_for_authentication?) && !@resource.valid_for_authentication? { valid_password }) || !valid_password
           return render_create_error_bad_credentials
@@ -71,8 +68,8 @@ module DeviseTokenAuth
 
     protected
 
-    def valid_params?(key, val)
-      resource_params[:password] && key && val
+    def valid_params?(q_values)
+      resource_params[:password] && q_values.compact_blank.present?
     end
 
     def get_auth_params
